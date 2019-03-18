@@ -27,7 +27,7 @@ def createHistogramFromMagnitudeAndOrientation(magnitude, orientation, max_value
     return cell_histogram
 
 
-def create_color_histogram(channel, max_value, bins, interpolated=True):
+def get_color_histogram(channel, max_value, bins, interpolated=True):
     """
 
     :param channel: the color channel to be discretized as a histogram
@@ -60,7 +60,7 @@ def create_color_histogram(channel, max_value, bins, interpolated=True):
         return cell_histogram
 
 
-def create_gradient_histogram(magnitude, angles, max_value, bins, interpolated=True):
+def get_gradient_histogram(magnitude, angles, max_value=180, bins=10, interpolated=True):
     if interpolated:
         bin_size = max_value / bins
         cell_histogram = np.zeros(bins, dtype=np.float)
@@ -97,14 +97,48 @@ def grid_images(image, num_of_grid):
     return image_windows
 
 
+def get_color_histogram_vector(image_rgb, bins=10, interpolated=True):
+    image_hsv = cv2.cvtColor(image_rgb, cv2.COLOR_BGR2HSV)
+    hist_h = get_color_histogram(image_hsv[:, :, 0], 179, bins=bins, interpolated=interpolated)
+    hist_s = get_color_histogram(image_hsv[:, :, 0], 255, bins=bins, interpolated=interpolated)
+    hist_v = get_color_histogram(image_hsv[:, :, 0], 255, bins=bins, interpolated=interpolated)
+    return np.concatenate((hist_h, hist_s, hist_v))
+
+
+def get_gradient_x(image):
+    return cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=5)
+
+
+def get_gradient_y(image):
+    return cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=5)
+
+
+def get_gradient_magnitude(grad_x, grad_y):
+    return np.sqrt(grad_x * grad_x + grad_y * grad_y)
+
+
+def get_gradient_angles(grad_x, grad_y):
+    return (np.arctan2(grad_y, grad_x) * 180 / np.pi) % 180
+
+
+def get_gradient_orientation_histogram_vector(image, bins=10, interpolated=True):
+    image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    grad_x = get_gradient_x(image_gray)
+    grad_y = get_gradient_y(image_gray)
+    magnitude = get_gradient_magnitude(grad_x, grad_y)
+    angles = get_gradient_angles(grad_x, grad_y)
+    return get_gradient_histogram(magnitude, angles, 180, bins=bins, interpolated=interpolated)
+
+
 image = cv2.imread(
     "/home/tunahansalih/PycharmProjects/EE58J_Assignment_1/data/SKU_Recognition_Dataset/confectionery/6753/crop_5744388.jpg")
 image = cv2.resize(image, (128, 128))
-grids = grid_images(image, 4)
+# grids = grid_images(image, 4)
 
-image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-hist_h = create_color_histogram(image_hsv[:, :, 0], 179, 10)
-hist_s = create_color_histogram(image_hsv[:, :, 0], 255, 10)
-hist_v = create_color_histogram(image_hsv[:, :, 0], 255, 10)
 
+for window in grid_images(image, num_of_grid=4):
+    color_histogram_vector = get_color_histogram_vector(window, 10, True)
+    gradient_magnitude_histogram_vector = get_gradient_orientation_histogram_vector(window, 10, True)
 # hist = create_color_histogram_interpolated([[[179]]], 179, 10)
+
+# image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
