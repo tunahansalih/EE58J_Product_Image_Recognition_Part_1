@@ -3,30 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def createHistogramFromMagnitudeAndOrientation(magnitude, orientation, max_value, bins):
-    """
-    :param magnitude: numpy nd-array containing magnitude of cells
-    :param orientation: numpy nd-array containing orientation of cells
-    :param bins: integer, number of bins to calculate
-    :return: numpy nd-array, containing histogram of oriented gradients for given cell
-    """
-    bin_size = max_value / bins
-    cell_histogram = np.zeros(bins)
-    for y in range(orientation.shape[0]):
-        for x in range(orientation.shape[1]):
-            current_orientation = orientation[y, x]
-            current_magnitude = magnitude[y, x]
-            # Interpolate magnitude over neighbor bins
-            former_bin = int(current_orientation / bin_size)
-            latter_bin = former_bin + 1
-            weight_of_former_bin = 1 + former_bin - current_orientation / bin_size
-            weight_of_latter_bin = 1 - weight_of_former_bin
-
-            cell_histogram[former_bin % bins] += current_magnitude * weight_of_former_bin
-            cell_histogram[latter_bin % bins] += current_magnitude * weight_of_latter_bin
-    return cell_histogram
-
-
 def get_color_histogram(channel, max_value, bins, interpolated=True):
     """
 
@@ -128,17 +104,3 @@ def get_gradient_orientation_histogram_vector(image, bins=10, interpolated=True)
     magnitude = get_gradient_magnitude(grad_x, grad_y)
     angles = get_gradient_angles(grad_x, grad_y)
     return get_gradient_histogram(magnitude, angles, 180, bins=bins, interpolated=interpolated)
-
-
-image = cv2.imread(
-    "/home/tunahansalih/PycharmProjects/EE58J_Assignment_1/data/SKU_Recognition_Dataset/confectionery/6753/crop_5744388.jpg")
-image = cv2.resize(image, (128, 128))
-# grids = grid_images(image, 4)
-
-
-for window in grid_images(image, num_of_grid=4):
-    color_histogram_vector = get_color_histogram_vector(window, 10, True)
-    gradient_magnitude_histogram_vector = get_gradient_orientation_histogram_vector(window, 10, True)
-# hist = create_color_histogram_interpolated([[[179]]], 179, 10)
-
-# image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
