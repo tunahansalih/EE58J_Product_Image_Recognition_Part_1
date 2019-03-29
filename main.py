@@ -34,67 +34,65 @@ for coarse_label in os.listdir(data_path):
             else:
                 print("Not a Jpeg")
 
-
 pickle.dump(images, open(os.path.join(pickle_path, "images.pickle"), "wb"))
 pickle.dump(coarse_labels, open(os.path.join(pickle_path, "coarse_labels.pickle"), "wb"))
 pickle.dump(fine_labels, open(os.path.join(pickle_path, "fine_labels.pickle"), "wb"))
 
-
-images_unpickled = pickle.load(open(os.path.join(pickle_path, "images.pickle"), "rb"))
-coarse_labels_unpickled = pickle.load(open(os.path.join(pickle_path, "coarse_labels.pickle"), "rb"))
-fine_labels_unpickled = pickle.load(open(os.path.join(pickle_path, "fine_labels.pickle"), "rb"))
-
-images_confectionary = []
-images_icecream = []
-images_laundry = []
-images_softdrinks_1 = []
-images_softdrinks_2 = []
-
-fine_labels_confectionary = []
-fine_labels_icecream = []
-fine_labels_laundry = []
-fine_labels_softdrinks_1 = []
-fine_labels_softdrinks_2 = []
-
-for image, category, fine_label in zip(images_unpickled, coarse_labels_unpickled, fine_labels_unpickled):
-    if category == 'confectionery':
-        images_confectionary.append(image)
-        fine_labels_confectionary.append(fine_label)
-    elif category == 'icecream':
-        images_icecream.append(image)
-        fine_labels_icecream.append(fine_label)
-    elif category == 'laundry':
-        images_laundry.append(image)
-        fine_labels_laundry.append(fine_label)
-    elif category == 'softdrinks-I':
-        images_softdrinks_1.append(image)
-        fine_labels_softdrinks_1.append(fine_label)
-    elif category == 'softdrinks-II':
-        images_softdrinks_2.append(image)
-        fine_labels_softdrinks_2.append(fine_label)
-
-images_list = [images_confectionary,
-               images_icecream,
-               images_laundry,
-               images_softdrinks_1,
-               images_softdrinks_2]
-
-fine_labels_list = [fine_labels_confectionary,
-                    fine_labels_icecream,
-                    fine_labels_laundry,
-                    fine_labels_softdrinks_1,
-                    fine_labels_softdrinks_2]
-
-categories_list = ['confectionery',
-                   'icecream',
-                   'laundry',
-                   'softdrinks-I',
-                   'softdrinks-II']
+images = pickle.load(open(os.path.join(pickle_path, "images.pickle"), "rb"))
+coarse_labels = pickle.load(open(os.path.join(pickle_path, "coarse_labels.pickle"), "rb"))
+fine_labels = pickle.load(open(os.path.join(pickle_path, "fine_labels.pickle"), "rb"))
+#
+# images_confectionary = []
+# images_icecream = []
+# images_laundry = []
+# images_softdrinks_1 = []
+# images_softdrinks_2 = []
+#
+# fine_labels_confectionary = []
+# fine_labels_icecream = []
+# fine_labels_laundry = []
+# fine_labels_softdrinks_1 = []
+# fine_labels_softdrinks_2 = []
+#
+# for image, category, fine_label in zip(images_unpickled, coarse_labels_unpickled, fine_labels_unpickled):
+#     if category == 'confectionery':
+#         images_confectionary.append(image)
+#         fine_labels_confectionary.append(fine_label)
+#     elif category == 'icecream':
+#         images_icecream.append(image)
+#         fine_labels_icecream.append(fine_label)
+#     elif category == 'laundry':
+#         images_laundry.append(image)
+#         fine_labels_laundry.append(fine_label)
+#     elif category == 'softdrinks-I':
+#         images_softdrinks_1.append(image)
+#         fine_labels_softdrinks_1.append(fine_label)
+#     elif category == 'softdrinks-II':
+#         images_softdrinks_2.append(image)
+#         fine_labels_softdrinks_2.append(fine_label)
+#
+# images_list = [images_confectionary,
+#                images_icecream,
+#                images_laundry,
+#                images_softdrinks_1,
+#                images_softdrinks_2]
+#
+# fine_labels_list = [fine_labels_confectionary,
+#                     fine_labels_icecream,
+#                     fine_labels_laundry,
+#                     fine_labels_softdrinks_1,
+#                     fine_labels_softdrinks_2]
+#
+# categories_list = ['confectionery',
+#                    'icecream',
+#                    'laundry',
+#                    'softdrinks-I',
+#                    'softdrinks-II']
 
 hyperparameters = {
-    "num_of_grid": [2, 4],
+    "num_of_grid": [4],
     "interpolated": [False],
-    "bins": [20],
+    "bins": [30],
     "k": [1],
     "distance_measure": ["l1"]
 }
@@ -117,69 +115,68 @@ hyperparameters = {
 
 train_split = 0.8
 
-for images, fine_labels, category in zip(images_list, fine_labels_list, categories_list):
+# for images, fine_labels, category in zip(images_list, fine_labels_list, categories_list):
+for feature in ["combined"]:
     results = []
-    print(f" Category: {category}")
-    for feature in ["combined", "color", "gradient"]:
-        print(f" Feature: {feature}")
-        for num_of_grid in hyperparameters["num_of_grid"]:
-            for bins in hyperparameters["bins"]:
-                for interpolated in hyperparameters["interpolated"]:
+    print(f" Feature: {feature}")
+    for num_of_grid in hyperparameters["num_of_grid"]:
+        for bins in hyperparameters["bins"]:
+            for interpolated in hyperparameters["interpolated"]:
+                t0 = time.time()
+                gradient_features = []
+                color_features = []
+
+                for i, (image, fine_label) in enumerate(zip(images, fine_labels)):
+                    grids = grid_images(image, num_of_grid=num_of_grid)
+                    gradient_feature = []
+                    color_feature = []
+                    for grid in grids:
+                        gradient_feature.append(
+                            get_gradient_orientation_histogram_vector(grid, bins=bins, interpolated=interpolated))
+                        color_feature.append(get_color_histogram_vector(grid, bins=bins, interpolated=interpolated))
+                    gradient_features.append(np.ravel(gradient_feature))
+                    color_features.append(np.ravel(color_feature))
+
+                color_train, color_test, gradient_train, gradient_test, fine_label_train, fine_label_test = train_test_split(
+                    color_features,
+                    gradient_features,
+                    fine_labels,
+                    test_size=1 - train_split,
+                    stratify=fine_labels)
+
+                print(f"Feature Extraction Time: {time.time() - t0}")
+                for k in hyperparameters["k"]:
+
                     t0 = time.time()
-                    gradient_features = []
-                    color_features = []
+                    for distance_measure in hyperparameters["distance_measure"]:
+                        clf = KNN_classifier(color_features=color_train,
+                                             gradient_features=gradient_train,
+                                             labels=fine_label_train,
+                                             k=k,
+                                             distance_measure=distance_measure,
+                                             feature=feature)
 
-                    for i, (image, fine_label) in enumerate(zip(images, fine_labels)):
-                        grids = grid_images(image, num_of_grid=num_of_grid)
-                        gradient_feature = []
-                        color_feature = []
-                        for grid in grids:
-                            gradient_feature.append(
-                                get_gradient_orientation_histogram_vector(grid, bins=bins, interpolated=interpolated))
-                            color_feature.append(get_color_histogram_vector(grid, bins=bins, interpolated=interpolated))
-                        gradient_features.append(np.ravel(gradient_feature))
-                        color_features.append(np.ravel(color_feature))
+                        score, predictions = clf.score(color_test, gradient_test, fine_label_test)
+                        result = {
+                            "num_of_grid": num_of_grid,
+                            "interpolated": interpolated,
+                            "bins": bins,
+                            # "k": k,
+                            "distance_measure": distance_measure,
+                            "feature": feature,
+                            "score": score
+                        }
+                        print(result)
+                        results.append(result)
 
-                    color_train, color_test, gradient_train, gradient_test, fine_label_train, fine_label_test = train_test_split(
-                        color_features,
-                        gradient_features,
-                        fine_labels,
-                        test_size=1 - train_split,
+                        with open(f'results_{feature}_features.json', 'w') as fp:
+                            json.dump(results, fp)
 
-                        stratify=fine_labels)
+                        cm = ConfusionMatrix(fine_label_test, predictions)
+                        with open(f"pickles/cm_feature_{feature}_grid_{num_of_grid}_bin_{bins}_interpolated_{interpolated}_k_{k}_distance_{distance_measure}.pickle", 'wb') as f:
+                            pickle.dump(cm, f)
+                        cm.plot(normalized=True)
+                        plt.savefig(
+                            f"result_feature_{feature}_grid_{num_of_grid}_bin_{bins}_interpolated_{interpolated}_k_{k}_distance_{distance_measure}.png")
 
-                    print(f"Feature Extraction Time: {time.time() - t0}")
-                    for k in hyperparameters["k"]:
-
-
-                        t0 = time.time()
-                        for distance_measure in hyperparameters["distance_measure"]:
-                            clf = KNN_classifier(color_features=color_train,
-                                                 gradient_features=gradient_train,
-                                                 labels=fine_label_train,
-                                                 k=k,
-                                                 distance_measure=distance_measure,
-                                                 feature=feature)
-
-                            score, predictions = clf.score(color_test, gradient_test, fine_label_test)
-                            result = {
-                                "num_of_grid": num_of_grid,
-                                "interpolated": interpolated,
-                                "bins": bins,
-                                "k": k,
-                                "distance_measure": distance_measure,
-                                "color_vector_length": len(color_train[0]),
-                                "gradient_vector_length": len(gradient_train[0]),
-                                "score": score
-                            }
-                            print(result)
-                            results.append(result)
-
-                            with open(f'results_{category}_{feature}_features.json', 'w') as fp:
-                                json.dump(results, fp)
-
-                            cm = ConfusionMatrix(fine_label_test, predictions)
-                            cm.plot(normalized=True)
-                            plt.savefig(f"result_category_{category}_feature_{feature}_grid_{num_of_grid}_bin_{bins}_interpolated_{interpolated}_k_{k}_distance_{distance_measure}.png")
-
-                            print(f"KNN calculation time: {time.time() - t0}")
+                        print(f"KNN calculation time: {time.time() - t0}")
